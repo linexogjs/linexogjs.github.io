@@ -1,19 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 const PostDetail = () => {
   const { id } = useParams();
   const [post, setPost] = useState(null);
   const navigate = useNavigate();
+  const hasIncreasedView = useRef(false); // ✅ 조회수 증가 여부 체크
 
   useEffect(() => {
     const posts = JSON.parse(localStorage.getItem("posts")) || [];
     const foundPost = posts.find((p) => p.id === parseInt(id));
 
     if (foundPost) {
+      if (!hasIncreasedView.current) {
+        // ✅ 조회수 증가 로직을 한 번만 실행
+        foundPost.views = (foundPost.views || 0) + 1;
+        hasIncreasedView.current = true; // 다시 실행되지 않도록 설정
+
+        // ✅ 증가된 조회수를 localStorage에 반영
+        const updatedPosts = posts.map((p) =>
+          p.id === foundPost.id ? foundPost : p
+        );
+        localStorage.setItem("posts", JSON.stringify(updatedPosts));
+      }
+
       setPost(foundPost);
     } else {
-      navigate("/");
+      navigate("/"); // 게시글이 없으면 홈으로 이동
     }
   }, [id, navigate]);
 
@@ -21,7 +34,7 @@ const PostDetail = () => {
     const posts = JSON.parse(localStorage.getItem("posts")) || [];
     const updatedPosts = posts.filter((p) => p.id !== parseInt(id));
     localStorage.setItem("posts", JSON.stringify(updatedPosts));
-    navigate("/");
+    navigate("/"); // 삭제 후 홈으로 이동
   };
 
   if (!post) {
@@ -31,11 +44,13 @@ const PostDetail = () => {
   return (
     <div style={{ maxWidth: "900px", margin: "20px auto", fontFamily: "'Roboto', sans-serif" }}>
       <h1 style={{ fontSize: "30px", color: "#333" }}>{post.title}</h1>
-      <p style={{ color: "#777", fontSize: "16px", marginBottom: "20px" }}>
+      <p style={{ color: "#777", fontSize: "16px", marginBottom: "10px" }}>
         작성 시간: {new Date(post.createdAt).toLocaleString()}
       </p>
+      <p style={{ color: "#777", fontSize: "16px", marginBottom: "20px" }}>
+        👀 조회수: {post.views} {/* ✅ 조회수 표시 */}
+      </p>
 
-      {/* 이미지가 있을 경우 이미지 미리보기 */}
       {post.image && (
         <div style={{ marginBottom: "20px" }}>
           <img
@@ -55,7 +70,6 @@ const PostDetail = () => {
         <p style={{ fontSize: "18px", lineHeight: "1.6", color: "#555" }}>{post.content}</p>
       </div>
 
-      {/* 수정, 삭제 버튼 배치 */}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
         <button
           onClick={() => navigate(`/edit/${id}`)}
@@ -84,7 +98,7 @@ const PostDetail = () => {
             cursor: "pointer",
             transition: "background-color 0.3s ease",
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = "#e53935"}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#d32f2f"}
           onMouseOut={(e) => e.target.style.backgroundColor = "#f44336"}
         >
           삭제
